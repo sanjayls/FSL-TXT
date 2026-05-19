@@ -1,0 +1,78 @@
+.crt-container {
+  background: #050505;
+  color: #f5f5f5;
+  font-family: 'VT323', monospace;
+  min-height: 100vh;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(0, 180, 255, 0.3);
+}
+
+.crt-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(255,255,255,0.03) 50%, transparent 50%);
+  background-size: 100% 3px;
+  pointer-events: none;
+  z-index: 2;
+  animation: scanline 4s linear infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 2px solid #ffd400;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+}
+
+.teletext-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.teletext-table th, .teletext-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #333;
+}
+
+.heim {
+  color: #ff9f1c;
+  font-weight: bold;
+}
+
+.navigation-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.9);
+  padding: 10px 20px;
+  border: 2px solid #3f7cff;
+  display: flex;
+  gap: 12px;
+}
+
+button {
+  background: #050505;
+  color: #7dff73;
+  border: 1px solid #7dff73;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: 'VT323', monospace;
+}
+
+button:hover {
+  background: #7dff73;
+  color: #050505;
+}
