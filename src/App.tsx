@@ -1,177 +1,64 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './App.css';
 
-type PageId = 100 | 101 | 181 | 182 | 201 | 202 | 203 | 220;
+type PageId = 100|101|102|103|180|181|182|183|200|201|202|203|220|300|301|302|303|400|401|402|403;
+type Match = { date:string; round:'Qualifikation'|'Finalrunde'; opponent:string; venue:'H'|'A'; result:string };
+type Row = { rank:number; club:string; sp:number; s:number; u:number; n:number; goals:string; pts?:number; bonus?:number; total?:number };
+
+const order: PageId[] = [100,101,102,103,180,181,182,183,200,201,202,203,220,300,301,302,303,400,401,402,403];
+const titles: Record<PageId,string> = {100:'STARTSEITE',101:'INDEX',102:'TICKER',103:'LETZTE MELDUNG',180:'SPORT',181:'RESULTATE',182:'TABELLE',183:'SPIELTAG',200:'FC LUZERN',201:'MANNSCHAFT',202:'SPIELER',203:'TRAINER',220:'SAISONSTATISTIK',300:'SAISON 88/89',301:'CHRONIK',302:'SCHLÜSSELSPIELE',303:'STATISTIK',400:'ARCHIV',401:'FOTOS',402:'ZEITUNGEN',403:'QUELLEN'};
+
+const matches: Match[] = [
+ ['23.07.88','Qualifikation','St. Gallen','H','3:2'],['27.07.88','Qualifikation','Aarau','A','1:1'],['30.07.88','Qualifikation','Grasshoppers','H','2:0'],['10.08.88','Qualifikation','Sion','H','2:1'],['13.08.88','Qualifikation','Bellinzona','A','3:1'],['16.08.88','Qualifikation','Young Boys','A','2:0'],['20.08.88','Qualifikation','Lugano','H','2:1'],['27.08.88','Qualifikation','Lausanne','A','0:0'],['31.08.88','Qualifikation','Servette','H','1:1'],['10.09.88','Qualifikation','Wettingen','A','0:0'],['14.09.88','Qualifikation','Xamax','H','1:0'],['24.09.88','Qualifikation','St. Gallen','A','1:0'],['28.09.88','Qualifikation','Aarau','H','1:0'],['08.10.88','Qualifikation','Grasshoppers','A','1:4'],['12.10.88','Qualifikation','Young Boys','H','1:3'],['22.10.88','Qualifikation','Sion','A','0:3'],['30.10.88','Qualifikation','Bellinzona','H','2:1'],['06.11.88','Qualifikation','Lugano','A','3:3'],['20.11.88','Qualifikation','Lausanne','H','0:0'],['27.11.88','Qualifikation','Servette','A','1:0'],['04.12.88','Qualifikation','Wettingen','H','2:2'],['11.12.88','Qualifikation','Xamax','A','0:0'],
+ ['19.03.89','Finalrunde','Young Boys','A','2:1'],['27.03.89','Finalrunde','Bellinzona','H','1:1'],['01.04.89','Finalrunde','Sion','A','1:1'],['08.04.89','Finalrunde','Grasshoppers','A','2:1'],['15.04.89','Finalrunde','Xamax','H','2:0'],['29.04.89','Finalrunde','Servette','A','2:2'],['06.05.89','Finalrunde','Wettingen','H','1:0'],['11.05.89','Finalrunde','Young Boys','H','3:3'],['20.05.89','Finalrunde','Bellinzona','A','0:0'],['23.05.89','Finalrunde','Sion','H','1:0'],['27.05.89','Finalrunde','Grasshoppers','H','1:0'],['31.05.89','Finalrunde','Xamax','A','0:1'],['10.06.89','Finalrunde','Servette','H','1:0'],['14.06.89','Finalrunde','Wettingen','A','1:0']
+].map(([date,round,opponent,venue,result]) => ({date,round:round as Match['round'],opponent,venue:venue as Match['venue'],result}));
+
+const quali: Row[] = [
+ {rank:1,club:'FC Luzern',sp:22,s:10,u:8,n:4,goals:'27:25',pts:28},{rank:2,club:'Grasshoppers',sp:22,s:10,u:7,n:5,goals:'41:29',pts:27},{rank:3,club:'AC Bellinzona',sp:22,s:9,u:7,n:6,goals:'34:27',pts:25},{rank:4,club:'FC Sion',sp:22,s:8,u:8,n:6,goals:'25:21',pts:24},{rank:5,club:'FC Wettingen',sp:22,s:5,u:14,n:3,goals:'23:21',pts:24},{rank:6,club:'Young Boys',sp:22,s:8,u:7,n:7,goals:'45:36',pts:23},{rank:7,club:'Neuchâtel Xamax',sp:22,s:7,u:9,n:6,goals:'39:33',pts:23},{rank:8,club:'Servette',sp:22,s:8,u:6,n:8,goals:'39:34',pts:22}
+];
+const final: Row[] = [
+ {rank:1,club:'FC Luzern',sp:14,s:7,u:5,n:2,goals:'17:11',bonus:14,total:33},{rank:2,club:'Grasshoppers',sp:14,s:7,u:2,n:5,goals:'20:18',bonus:14,total:30},{rank:3,club:'FC Sion',sp:14,s:6,u:5,n:3,goals:'22:15',bonus:12,total:29},{rank:4,club:'FC Wettingen',sp:14,s:7,u:2,n:5,goals:'22:14',bonus:12,total:28},{rank:5,club:'Young Boys',sp:14,s:6,u:3,n:5,goals:'36:22',bonus:12,total:27},{rank:6,club:'Neuchâtel Xamax',sp:14,s:4,u:3,n:7,goals:'23:26',bonus:11,total:22},{rank:7,club:'AC Bellinzona',sp:14,s:2,u:4,n:8,goals:'09:26',bonus:13,total:21},{rank:8,club:'Servette',sp:14,s:3,u:4,n:7,goals:'25:42',bonus:11,total:21}
+];
+const squad = [['Tor','Roger Tschudin','Stammtorhüter'],['Tor','Giorgio Mellacina','Torhüter / Kader'],['Abwehr','Roger Wehrli','Kapitän / Routinier'],['Abwehr','Hanspeter Kaufmann','Defensive Achse'],['Abwehr','Urs Schönenberger','Stabile Achse'],['Abwehr','Stefan Marini','Kader / Verteidigung'],['Mittelfeld','Hanspeter Burri','Antreiber'],['Mittelfeld','Martin Müller','Dynamik'],['Mittelfeld','Jürgen Mohr','Deutsche Verstärkung'],['Angriff','Sigurdur Gretarsson','Isländischer Angreifer'],['Angriff','Peter Nadig','Wichtiger Offensivspieler'],['Angriff','Herbert Baumann','Technisch stark'],['Kader','Paul Friberg','Rotation'],['Kader','Marco Bernaschina','Rotation'],['Kader','Urs Birrer','Kader'],['Kader','Heinz Moser','Kader'],['Kader','Peter Gmür','Kader'],['Kader','Marcel Kälin','Kader']];
+const scorers = [['1','Peter Nadig','Angriff','9','rekonstruiert'],['2','Sigurdur Gretarsson','Angriff','6–7','rekonstruiert'],['3','Jürgen Mohr','Mittelfeld','~5','rekonstruiert'],['4','Martin Müller','Mittelfeld','3–4','rekonstruiert'],['–','Hanspeter Burri','Mittelfeld','~4','rekonstruiert'],['–','Herbert Baumann','Angriff','~3','rekonstruiert']];
+const ticker = ['FSL 181: alle FCL-Spiele 1988/89 als RSSSF-Seed','FSL 182: Tabelle Qualifikation und Finalrunde','FSL 220: Statistikseite mit Evidenzstatus','FSL 403: Quellenstand v0.1 — Primärquellen offen'];
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<PageId>(100);
-  const [isFlickering, setIsFlickering] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const navigate = (page: PageId) => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setIsFlickering(true);
-
-    timeoutRef.current = setTimeout(() => {
-      setCurrentPage(page);
-      setIsFlickering(false);
-    }, 160);
-  };
-
-  useEffect(() => {
-    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
-  }, []);
-
-  return (
-    <div className={`crt-container ${isFlickering ? 'flicker' : ''}`}>
-      <div className="teletext-header">
-        <div className="top-bar">
-          <div>FSL FREISTOSS LUZERN TELETEXT</div>
-          <div>SIEHE TXT {currentPage} • 19.05.1989 • 20:45</div>
-        </div>
-      </div>
-
-      <div className="content">
-        {currentPage === 100 && <Startseite navigate={navigate} />}
-        {currentPage === 101 && <Index navigate={navigate} />}
-        {currentPage === 181 && <ResultatePage />}
-        {currentPage === 182 && <TabellePage />}
-        {currentPage === 201 && <MannschaftPage />}
-        {currentPage === 202 && <SpielerPage />}
-        {currentPage === 203 && <TrainerPage />}
-        {currentPage === 220 && <StatistikPage />}
-      </div>
-
-      <div className="navigation-bar">
-        <button onClick={() => navigate(101)}>F1 INDEX</button>
-        <button onClick={() => navigate(181)}>181 RESULTATE</button>
-        <button onClick={() => navigate(182)}>182 TABELLE</button>
-        <button onClick={() => navigate(201)}>201 MANNSCHAFT</button>
-        <button onClick={() => navigate(202)}>202 SPIELER</button>
-        <button onClick={() => navigate(203)}>203 TRAINER</button>
-        <button onClick={() => navigate(220)}>220 STATISTIK</button>
-      </div>
-    </div>
-  );
+ const [page,setPage] = useState<PageId>(100); const [cut,setCut]=useState(false); const t=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const nav=(p:PageId)=>{ if(t.current) clearTimeout(t.current); setCut(false); requestAnimationFrame(()=>{setCut(true); t.current=setTimeout(()=>setPage(p),135);}); };
+ const idx=order.indexOf(page); const back=()=>nav(order[(idx-1+order.length)%order.length]); const next=()=>nav(order[(idx+1)%order.length]);
+ useEffect(()=>{const k=(e:KeyboardEvent)=>{if(e.key==='Enter')nav(101); if(e.key==='ArrowLeft')back(); if(e.key==='ArrowRight')next(); if(e.key==='F1'){e.preventDefault();nav(101);}}; window.addEventListener('keydown',k); return()=>{window.removeEventListener('keydown',k); if(t.current)clearTimeout(t.current);};},[page]);
+ return <main className={`crt-container ${cut?'transition-flicker':''}`} onAnimationEnd={()=>setCut(false)}><Header page={page}/><section className="content"><Router page={page} nav={nav}/></section><Ticker/><Nav nav={nav} back={back} next={next} page={page}/></main>;
 }
-
-/* ====================== SEITEN ====================== */
-
-const Startseite = ({ navigate }: { navigate: (p: PageId) => void }) => (
-  <div className="page center">
-    <h1 className="logo">FSL</h1>
-    <h2>FREISTOSS LUZERN TELETEXT</h2>
-    <p style={{ fontSize: '1.6rem', margin: '20px 0' }}>FC LUZERN — SAISON 1988/89</p>
-    <p style={{ color: '#ffd400', fontSize: '1.8rem' }}>SCHWEIZER MEISTER</p>
-    <button className="big-btn" onClick={() => navigate(101)} style={{ marginTop: '40px', padding: '15px 40px', fontSize: '1.4rem' }}>
-      DRÜCKEN SIE ENTER → INDEX
-    </button>
-  </div>
-);
-
-const Index = ({ navigate }: { navigate: (p: PageId) => void }) => (
-  <div className="page">
-    <h2>101 — INDEX</h2>
-    <div className="index-grid">
-      <div onClick={() => navigate(181)}>181 RESULTATE</div>
-      <div onClick={() => navigate(182)}>182 TABELLE</div>
-      <div onClick={() => navigate(201)}>201 MANNSCHAFT</div>
-      <div onClick={() => navigate(202)}>202 SPIELER</div>
-      <div onClick={() => navigate(203)}>203 TRAINER</div>
-      <div onClick={() => navigate(220)}>220 SAISONSTATISTIK</div>
-    </div>
-  </div>
-);
-
-const ResultatePage = () => (
-  <div className="page">
-    <h2>181 — RESULTATE</h2>
-    <h3>FC Luzern – Saison 1988/89</h3>
-
-    <h4>QUALIFIKATIONSRUNDE</h4>
-    <table className="teletext-table">
-      <thead><tr><th>Datum</th><th>Gegner</th><th>H/A</th><th>Resultat</th></tr></thead>
-      <tbody>
-        <tr className="heim"><td>23.07.</td><td>St. Gallen</td><td>H</td><td><strong>3:2</strong></td></tr>
-        <tr><td>27.07.</td><td>Aarau</td><td>A</td><td>1:1</td></tr>
-        <tr className="heim"><td>30.07.</td><td>Grasshoppers</td><td>H</td><td><strong>2:0</strong></td></tr>
-        <tr><td>16.08.</td><td>Young Boys</td><td>A</td><td><strong>2:0</strong></td></tr>
-        <tr className="heim"><td>10.08.</td><td>Sion</td><td>H</td><td><strong>2:1</strong></td></tr>
-        {/* Weitere Zeilen kannst du selbst ergänzen */}
-      </tbody>
-    </table>
-
-    <h4>FINALRUNDE</h4>
-    <table className="teletext-table">
-      <thead><tr><th>Datum</th><th>Gegner</th><th>H/A</th><th>Resultat</th></tr></thead>
-      <tbody>
-        <tr><td>19.03.</td><td>Young Boys</td><td>A</td><td><strong>2:1</strong></td></tr>
-        <tr className="heim"><td>27.03.</td><td>Bellinzona</td><td>H</td><td>1:1</td></tr>
-        <tr className="heim"><td>15.04.</td><td>Xamax</td><td>H</td><td><strong>2:0</strong></td></tr>
-      </tbody>
-    </table>
-
-    <div className="status">Datenquelle: RSSSF • Stand: vollständig</div>
-  </div>
-);
-
-const TabellePage = () => (
-  <div className="page">
-    <h2>182 — TABELLE</h2>
-    <h3>Qualifikationsrunde</h3>
-    <table className="teletext-table">
-      <thead><tr><th>Pl.</th><th>Verein</th><th>Sp</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>Pkt</th></tr></thead>
-      <tbody>
-        <tr className="heim"><td>1.</td><td><strong>FC Luzern</strong></td><td>22</td><td>10</td><td>8</td><td>4</td><td>27:25</td><td><strong>28</strong></td></tr>
-        <tr><td>2.</td><td>Grasshoppers</td><td>22</td><td>10</td><td>7</td><td>5</td><td>41:29</td><td>27</td></tr>
-      </tbody>
-    </table>
-
-    <h3>Finalrunde (Endtabelle)</h3>
-    <p><strong>FC Luzern = Schweizer Meister 1988/89</strong></p>
-  </div>
-);
-
-const MannschaftPage = () => (
-  <div className="page">
-    <h2>201 — MANNSCHAFT</h2>
-    <h3>Meisterkader 1988/89</h3>
-    <p>Trainer: Friedel Rausch</p>
-    <p>Stammformation (typisch):</p>
-    <p>Tschudin – Wehrli, Kaufmann, Schönenberger – Burri – Müller, Mohr – Nadig, Gretarsson...</p>
-  </div>
-);
-
-const SpielerPage = () => (
-  <div className="page">
-    <h2>202 — SPIELER</h2>
-    <h3>Top-Torschützen 1988/89</h3>
-    <table className="teletext-table">
-      <thead><tr><th>Rang</th><th>Spieler</th><th>Tore</th></tr></thead>
-      <tbody>
-        <tr><td>1.</td><td>Peter Nadig</td><td>9</td></tr>
-        <tr><td>2.</td><td>Sigurdur Gretarsson</td><td>7</td></tr>
-        <tr><td>3.</td><td>Jürgen Mohr</td><td>5</td></tr>
-      </tbody>
-    </table>
-  </div>
-);
-
-const TrainerPage = () => (
-  <div className="page">
-    <h2>203 — TRAINER</h2>
-    <h3>Friedel Rausch</h3>
-    <p>Cheftrainer 1985–1992</p>
-    <p><strong>Größter Erfolg:</strong> Schweizer Meister 1988/89</p>
-  </div>
-);
-
-const StatistikPage = () => (
-  <div className="page">
-    <h2>220 — SAISONSTATISTIK</h2>
-    <p>Qualifikation + Finalrunde</p>
-    <p><strong>FC Luzern wurde 1988/89 zum ersten Mal in der Vereinsgeschichte Schweizer Meister.</strong></p>
-  </div>
-);
-
+function Header({page}:{page:PageId}){return <header className="teletext-header"><div className="top-bar"><span>FSL&nbsp; FREISTOSS LUZERN TELETEXT</span><span>SIEHE TXT {page} · {titles[page]} · 19.05.1989 · 20:45</span></div><div className="signal-line"><span>SRG/SRF VIDEOTEXT-REFERENZ · STATISCHER FUSSBALL-DATENFEED</span><span>PUBLIC BETA v0.1</span></div></header>}
+function Router({page,nav}:{page:PageId;nav:(p:PageId)=>void}){switch(page){case 100:return <Home nav={nav}/>;case 101:return <Index nav={nav}/>;case 102:return <TickerPage/>;case 103:return <Latest nav={nav}/>;case 180:return <Hub title="SPORT" sub="Fussball · Resultate · Tabellen" pages={[181,182,183,220]} nav={nav}/>;case 181:return <Results/>;case 182:return <Tables/>;case 183:return <Matchday/>;case 200:return <Club nav={nav}/>;case 201:return <Squad/>;case 202:return <Players/>;case 203:return <Coach/>;case 220:return <SeasonStats/>;case 300:return <Hub title="SAISON 88/89" sub="Meistersaison · Strukturhub" pages={[181,182,301,302,303,220]} nav={nav}/>;case 301:return <Chronicle/>;case 302:return <KeyMatches/>;case 303:return <Stats/>;case 400:return <Hub title="ARCHIV" sub="Quellen, Bilder, Zeitungen" pages={[401,402,403]} nav={nav}/>;case 401:return <Photos/>;case 402:return <Newspapers/>;case 403:return <Sources/>;default:return <Index nav={nav}/>}}
+function Intro({n,t,s}:{n:string;t:string;s:string}){return <div className="page-intro"><span>SIEHE TXT {n}</span><h1>{t}</h1><p>{s}</p></div>}
+function Status({items}:{items:string[]}){return <div className="status-strip">{items.map(x=><span key={x}>{x}</span>)}</div>}
+function Home({nav}:{nav:(p:PageId)=>void}){return <div className="page boot-page"><div><div className="logo">FSL</div><div className="boot-subtitle">FREISTOSS LUZERN TELETEXT</div></div><div className="boot-grid"><div><p className="eyebrow">SAISONFEED</p><h1>FC Luzern 1988/89</h1><p className="lead">Ein statisches, quellenbewusstes Teletext-Archiv zur Meistersaison.</p></div><div className="info-card"><b>RSSSF-Daten · nur FCL-Spiele</b><p>Resultate, Tabellen und erste Kaderseiten als bewusst begrenzte Public-Beta.</p></div></div><button className="big-btn blink" onClick={()=>nav(101)}>DRÜCKEN SIE ENTER → INDEX</button></div>}
+function Index({nav}:{nav:(p:PageId)=>void}){const cards:[PageId,string,string][]=[[100,'STARTSEITE','Bootscreen'],[102,'TICKER','Archivmeldungen'],[180,'SPORT','Sport-Hub'],[181,'RESULTATE','Alle FCL-Spiele'],[182,'TABELLE','Quali + Finalrunde'],[200,'FC LUZERN','Vereinsseite'],[201,'MANNSCHAFT','Meisterkader'],[202,'SPIELER','Spielerstatus'],[203,'TRAINER','Friedel Rausch'],[300,'SAISON 88/89','Chronik'],[220,'SAISONSTATISTIK','Evidenz + Matrix'],[400,'ARCHIV','Quellen']];return <div className="page"><Intro n="101" t="INDEX" s="Hauptnavigation · FSL Teletext"/><div className="index-grid">{cards.map(c=><button className="index-card" key={c[0]} onClick={()=>nav(c[0])}><span>{c[0]}</span><strong>{c[1]}</strong><small>{c[2]}</small></button>)}</div><Status items={['Navigation: F1 / Enter / Pfeiltasten','Design: Teletext + Swiss Grid','Sprache: Deutsch']}/></div>}
+function TickerPage(){return <div className="page"><Intro n="102" t="TICKER" s="Archivmeldungen · statisch v0.1"/>{ticker.map((x,i)=><div className="ticker-row" key={x}><span>{String(i+1).padStart(2,'0')}</span><p>{x}</p></div>)}<Status items={['Kein Live-Ticker','RSSSF-Seed als Startpunkt','Kuratiert']}/></div>}
+function Latest({nav}:{nav:(p:PageId)=>void}){return <div className="page split-layout"><div><Intro n="103" t="LETZTE MELDUNG" s="Public Beta · Stand v0.1"/><h3>FCL-Meistersaison als erster Feed</h3><p className="lead">Der erste FSL-Feed beschränkt sich auf die Saison 1988/89 und zunächst auf Spiele mit FC-Luzern-Beteiligung.</p><button onClick={()=>nav(181)}>181 Resultate öffnen</button> <button onClick={()=>nav(403)}>403 Quellenstand</button></div><Evidence/></div>}
+function Hub({title,sub,pages,nav}:{title:string;sub:string;pages:PageId[];nav:(p:PageId)=>void}){return <div className="page"><Intro n={String(pages[0]).slice(0,1)+'00'} t={title} s={sub}/><div className="hub-grid">{pages.map(p=><button className="hub-button" key={p} onClick={()=>nav(p)}><span>{p}</span><strong>{titles[p]}</strong><small>öffnen</small></button>)}</div></div>}
+function Results(){return <div className="page"><Intro n="181" t="RESULTATE" s="FC Luzern · Saison 1988/89 · nur FCL-Spiele"/><div className="two-col-top"><Mini label="Qualifikation" val="22 Spiele · 10S 8U 4N · 27:25 · 28 Pkt"/><Mini label="Finalrunde" val="14 Spiele · 7S 5U 2N · 17:11 · 33 Pkt"/></div><MatchTable title="QUALIFIKATIONSRUNDE" data={matches.filter(m=>m.round==='Qualifikation')}/><MatchTable title="FINALRUNDE" data={matches.filter(m=>m.round==='Finalrunde')}/><Status items={['Resultate: RSSSF-Seed','Torschützen je Match bewusst entfernt','Heimspiele orange hervorgehoben']}/></div>}
+function MatchTable({title,data}:{title:string;data:Match[]}){return <section className="table-block"><h3>▣ {title}</h3><div className="table-wrap"><table className="teletext-table compact"><thead><tr><th>Datum</th><th>Gegner</th><th>H/A</th><th>Resultat</th></tr></thead><tbody>{data.map(m=><tr key={m.date+m.opponent+m.round} className={m.venue==='H'?'heim':''}><td>{m.date}</td><td>{m.opponent}</td><td>{m.venue}</td><td><b>{m.result}</b></td></tr>)}</tbody></table></div></section>}
+function Tables(){return <div className="page"><Intro n="182" t="TABELLE" s="Qualifikationsrunde und Finalrunde"/><h3>▤ QUALIFIKATIONSRUNDE</h3><League rows={quali} mode="q"/><p className="caption">▲ FC Luzern qualifiziert sich als Gruppensieger für die Finalrunde.</p><h3>▤ FINALRUNDE</h3><League rows={final} mode="f"/><p className="caption champion">FC Luzern = Schweizer Meister 1988/89.</p><Status items={['Tabellenwerte: Seed-Daten','Bonus-System: halbe Quali-Punkte','Primärquellenprüfung offen']}/></div>}
+function League({rows,mode}:{rows:Row[];mode:'q'|'f'}){return <div className="table-wrap"><table className="teletext-table"><thead><tr><th>Pl.</th><th>Verein</th><th>Sp</th><th>S</th><th>U</th><th>N</th><th>Tore</th>{mode==='q'?<th>Pkt</th>:<><th>Bonus</th><th>Total</th></>}</tr></thead><tbody>{rows.map(r=><tr key={r.club+mode} className={r.club==='FC Luzern'?'heim':''}><td>{r.rank}.</td><td><b>{r.club}</b>{r.club==='FC Luzern'?' ▲':''}</td><td>{r.sp}</td><td>{r.s}</td><td>{r.u}</td><td>{r.n}</td><td>{r.goals}</td>{mode==='q'?<td><b>{r.pts}</b></td>:<><td>{r.bonus}</td><td><b>{r.total}</b></td></>}</tr>)}</tbody></table></div>}
+function Matchday(){return <div className="page"><Intro n="183" t="SPIELTAG" s="Chronologischer FCL-Matchfeed"/><div className="timeline">{matches.map((m,i)=><div className={`timeline-item ${m.venue==='H'?'home-marker':''}`} key={m.date+m.opponent}><span>{String(i+1).padStart(2,'0')}</span><div><b>{m.date} · {m.opponent}</b><p>{m.round} · {m.venue==='H'?'Heimspiel':'Auswärtsspiel'} · Resultat {m.result}</p></div></div>)}</div></div>}
+function Club({nav}:{nav:(p:PageId)=>void}){return <div className="page club-page"><Intro n="200" t="FC LUZERN" s="Vereinsseite · Meister 1988/89"/><div className="club-layout"><div className="visual-anchor"><div className="club-emblem">FCL</div><div className="pictogram"><span/><span/><span/></div><p>Allmend Luzern · Meistermannschaft 1988/89</p></div><div className="info-stack"><Line l="Trainer" v="Friedel Rausch"/><Line l="Saison" v="1988/89"/><Line l="Status" v="Schweizer Meister"/><Line l="Datenstand" v="RSSSF-Seed + FSL-Struktur v0.1"/><button onClick={()=>nav(201)}>201 Mannschaft</button> <button onClick={()=>nav(202)}>202 Spieler</button> <button onClick={()=>nav(203)}>203 Trainer</button></div></div></div>}
+function Squad(){return <div className="page"><Intro n="201" t="MANNSCHAFT" s="Meisterkader · Seed-Fassung"/><div className="formation-card"><h3>▣ TYPISCHE FORMATION / KERN</h3><pre>{`                 Tschudin\n\nWehrli   Kaufmann   Schönenberger   Marini\n\n                  Burri\n\n       Müller      Mohr      Baumann\n\n            Gretarsson   Nadig`}</pre></div><SimpleTable heads={['Position','Spieler','Bemerkung']} rows={squad}/><Status items={['Kader: Seed-Fassung','Normalisierung offen','Spieler-Unterseiten später']}/></div>}
+function Players(){return <div className="page"><Intro n="202" t="SPIELER" s="Spielerübersicht · Torschützenstatus getrennt"/><div className="notice"><b>Methodischer Hinweis:</b> Torschützen pro Match werden auf Seite 181 nicht angezeigt, weil die Vollständigkeit je Spiel noch nicht einheitlich geprüft ist. Diese Seite führt nur aggregierte, als rekonstruiert markierte Seed-Werte.</div><SimpleTable heads={['Rang','Spieler','Position','Tore','Status']} rows={scorers}/><Status items={['Aggregiert: ja','Matchweise: nein','Konfliktprüfung offen']}/></div>}
+function Coach(){return <div className="page split-layout"><div><Intro n="203" t="TRAINER" s="Friedel Rausch · Cheftrainer"/><Line l="Name" v="Friedel Rausch"/><Line l="Nationalität" v="Deutschland"/><Line l="Geboren" v="01.02.1940"/><Line l="FCL-Zeit" v="1985–1992"/><Line l="Grösster Erfolg" v="Schweizer Meister 1988/89"/><p className="lead">Die Trainerseite bleibt nüchtern: Rolle, Zeitraum, Erfolg. Zitate und Primärquellen folgen später.</p></div><Evidence/></div>}
+function SeasonStats(){const rows=[['Grasshoppers','2:0','1:4','1:0 / 2:1'],['Young Boys','1:3','2:0','3:3 / 2:1'],['Sion','2:1','0:3','1:0 / 1:1'],['Bellinzona','2:1','3:1','1:1 / 0:0'],['Xamax','1:0','0:0','2:0 / 0:1'],['Servette','1:1','1:0','1:0 / 2:2'],['Wettingen','2:2','1:0','1:0 / 1:0'],['Lugano / Lausanne / Aarau / St. Gallen','siehe 181','siehe 181','–']];return <div className="page research-layout"><div><Intro n="220" t="SAISONSTATISTIK" s="Maschinenraum · FCL-Perspektive"/><p className="matrix-note">ZEILE = Gegnergruppe · Werte = FCL-Resultate. Arbeitsansicht, keine Fan-Narration.</p><SimpleTable heads={['Gegner','Heim','Auswärts','Finalrunde']} rows={rows}/><h3>▤ ABSCHLUSSTABELLE FINALRUNDE</h3><League rows={final} mode="f"/></div><Evidence/></div>}
+function Chronicle(){return <div className="page"><Intro n="301" t="CHRONIK" s="Saisonverlauf · Kurzform"/><div className="timeline">{[['01','Sommer 1988','Start der Qualifikationsrunde; FCL etabliert früh eine starke Ausgangslage.'],['02','Herbst 1988','Stabile Serie, aber auch klare Rückschläge gegen direkte Konkurrenten.'],['03','Winter 1988','Qualifikation als Gruppensieger; Bonuspunkte sichern gute Finalrundenbasis.'],['04','Frühling 1989','Finalrunde mit kontrollierter Bilanz und sehr wenigen Niederlagen.'],['05','Juni 1989','FC Luzern wird Schweizer Meister.']].map(x=><div className="timeline-item" key={x[0]}><span>{x[0]}</span><div><b>{x[1]}</b><p>{x[2]}</p></div></div>)}</div><Status items={['Chronik: kuratierter Text','Primärquellen: offen','Narrative Ebene']}/></div>}
+function KeyMatches(){const data=[['302.1','Startsignal','FC Luzern – St. Gallen 3:2','Eröffnung mit Heimspiel-Sieg.'],['302.2','Signalspiel','FC Luzern – Grasshoppers 2:0','Früher Referenzpunkt gegen direkten Rivalen.'],['302.3','Finalrunde','Xamax – FC Luzern 0:1','Einziger FCL-Verlust der Finalrunde gegen Xamax.'],['302.4','Titelphase','FC Luzern – Servette 1:0','Späte Finalrunde; Titelrennen bleibt kontrolliert.'],['302.5','Abschluss','Wettingen – FC Luzern 0:1','Saisonfinale mit Sieg.']];return <div className="page"><Intro n="302" t="SCHLÜSSELSPIELE" s="Kurierte Spielanker"/><div className="keymatch-grid">{data.map(d=><article className="keymatch-card" key={d[0]}><span>{d[0]}</span><strong>{d[1]}</strong><h3>{d[2]}</h3><p>{d[3]}</p></article>)}</div></div>}
+function Stats(){return <div className="page"><Intro n="303" t="STATISTIK" s="Kompakte Saisonkennzahlen"/><div className="stat-grid">{[['Qualifikation','22 Spiele'],['Finalrunde','14 Spiele'],['Bilanz Quali','10S · 8U · 4N'],['Bilanz Final','7S · 5U · 2N'],['Tore Quali','27:25'],['Tore Final','17:11'],['Endstand','33 Punkte'],['Status','Meister']].map(x=><Mini key={x[0]} label={x[0]} val={x[1]}/>)}</div><Status items={['Statistik: abgeleitet aus Seed','Keine xG/modern metrics','Historische Datenlogik']}/></div>}
+function Photos(){return <div className="page"><Intro n="401" t="FOTOS" s="Bildarchiv · Platzhalter"/><div className="notice">Noch keine Bildreproduktion integriert. Für Public-Beta nur Platzhalter, um Rechte- und Quellenlogik sauber zu halten.</div><div className="placeholder-grid"><div>FOTO 01<br/>ALLMEND</div><div>FOTO 02<br/>MANNSCHAFT</div><div>FOTO 03<br/>TRIBÜNE</div></div></div>}
+function Newspapers(){return <div className="page"><Intro n="402" t="ZEITUNGEN" s="Primärquellen · offen"/><div className="notice">Zielzustand: Zeitungsausschnitte als Quellenanker mit Datum, Seite, Archivsignatur, Rechtehinweis und kurzen zulässigen Exzerpten führen.</div><Status items={['Scans: nicht integriert','Exzerpte: offen','Rechteprüfung: erforderlich']}/></div>}
+function Sources(){return <div className="page"><Intro n="403" t="QUELLEN" s="Quellenstand und Evidenzlogik"/><div className="source-list"><div className="source-card"><span>SRC-001</span><b>RSSSF Switzerland 1988/89</b><p>Seed-Quelle für Resultate und Tabellen. Status: Startpunkt, nicht Endzustand.</p></div><div className="source-card"><span>SRC-OPEN</span><b>Zeitgenössische Zeitungen</b><p>Für Matchberichte, Torschützen, Zuschauer, Aufstellungen und Konfliktfälle gezielt zu prüfen.</p></div><div className="source-card"><span>METHODIK</span><b>FSL-Logik</b><p>Trennung zwischen Resultatdaten, Rekonstruktion, Interpretation und offenen Primärquellen.</p></div></div><Status items={['Evidenzqualität: Seed','Konfliktsets: 0 erfasst','Offene Primärquellen: ja']}/></div>}
+function Mini({label,val}:{label:string;val:string}){return <div className="mini-stat"><span>{label}</span><b>{val}</b></div>}
+function Line({l,v}:{l:string;v:string}){return <div className="info-line"><span>{l}</span><b>{v}</b></div>}
+function SimpleTable({heads,rows}:{heads:string[];rows:string[][]}){return <div className="table-wrap"><table className="teletext-table"><thead><tr>{heads.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i} className={r.includes('FC Luzern')||r.includes('Peter Nadig')?'heim':''}>{r.map((c,j)=><td key={j}>{j===1?<b>{c}</b>:c}</td>)}</tr>)}</tbody></table></div>}
+function Evidence(){return <aside className="evidence-panel"><h3>◎ DATENSTATUS</h3><Line l="Resultate" v="vollständig im Seed"/><Line l="Tabelle" v="rekonstruiert / Seed"/><Line l="Forfaits" v="0 erfasst"/><Line l="Konflikte" v="0 erfasst"/><Line l="Quelle" v="RSSSF zuerst"/><Line l="Primärquellen" v="offen"/><p className="legend"><span className="legend-orange"/> Orange = FC Luzern / Heimspiel / Akzent<br/>▲ = Gruppensieger / Meistermarkierung</p></aside>}
+function Ticker(){return <div className="ticker"><div>{ticker.join('   +++   ')}</div></div>}
+function Nav({nav,back,next,page}:{nav:(p:PageId)=>void;back:()=>void;next:()=>void;page:PageId}){return <nav className="navigation-bar"><button className="nav-green" onClick={()=>nav(101)}>F1 INDEX</button><button className="nav-yellow" onClick={back}>← ZURÜCK</button><button className="nav-blue" onClick={next}>WEITER →</button>{[181,182,200,300,400].map(p=><button key={p} onClick={()=>nav(p as PageId)}>{p}</button>)}<span>{page}/403</span></nav>}
 export default App;
